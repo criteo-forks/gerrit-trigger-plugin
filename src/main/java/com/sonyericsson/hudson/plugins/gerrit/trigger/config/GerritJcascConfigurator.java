@@ -47,7 +47,6 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -91,7 +90,12 @@ public class GerritJcascConfigurator extends BaseConfigurator<PluginImpl> {
     protected void configure(
         Mapping config, PluginImpl instance, boolean dryrun, ConfigurationContext context
     ) throws ConfiguratorException {
-        List<GerritServer> oldServers = new ArrayList<>(instance.getServers());
+        if (!dryrun) {
+            for (GerritServer oldServer : instance.getServers()) {
+                oldServer.stopConnection();
+                oldServer.stop();
+            }
+        }
 
         try {
             super.configure(config, instance, dryrun, context);
@@ -101,11 +105,6 @@ public class GerritJcascConfigurator extends BaseConfigurator<PluginImpl> {
 
         if (!dryrun) {
             instance.getPluginConfig().updateEventFilter();
-
-            for (GerritServer oldServer : oldServers) {
-                oldServer.stopConnection();
-                oldServer.stop();
-            }
 
             for (GerritServer server : instance.getServers()) {
                 server.getConfig().setNumberOfSendingWorkerThreads(
